@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lean Ballspiel – Protokoll & Auswertung</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+    .gold-gradient { background: linear-gradient(135deg, #FFE000 0%, #799F0C 100%); }
+    .silver-gradient { background: linear-gradient(135deg, #E0E0E0 0%, #F5F5F5 100%); }
+    .bronze-gradient { background: linear-gradient(135deg, #E5A93C 0%, #885202 100%); }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white py-6 shadow-lg border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-black tracking-tight text-emerald-400">LEAN BALLSPIEL PROTOKOLL</h1>
+        <p class="text-xs text-slate-400">Live-Zeiterfassung, Optimierungsanalyse & Siegerehrung</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="switchTab('teams')" id="tab-btn-teams" class="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow transition hover:bg-emerald-400">Teams & Runden</button>
+        <button onclick="switchTab('ranking')" id="tab-btn-ranking" class="px-4 py-2 text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition">Auswertung & Ranking</button>
+        <button onclick="switchTab('ceremony')" id="tab-btn-ceremony" class="px-4 py-2 text-sm font-semibold rounded-lg bg-amber-500 text-slate-900 shadow hover:bg-amber-400 transition">🏆 Siegerehrung</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 mt-8">
+
+    <!-- TAB 1: TEAMS & RUNDEN EINGABE -->
+    <section id="tab-teams" class="space-y-8">
+      
+      <!-- Team hinzufügen -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full uppercase">Schritt 1</span>
+          Neues Team anlegen
+        </h2>
+        <form id="add-team-form" onsubmit="handleAddTeam(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Teamname</label>
+            <input type="text" id="team-name-input" required placeholder="z. B. Lean Rockstars" class="w-full px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Namen der 5 Spieler / Prozessschritte</label>
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+              <input type="text" placeholder="Spieler 1 (Lager)" class="player-input px-3 py-1.5 text-sm border rounded-md" required>
+              <input type="text" placeholder="Spieler 2 (Vormontage)" class="player-input px-3 py-1.5 text-sm border rounded-md" required>
+              <input type="text" placeholder="Spieler 3 (Montage 1)" class="player-input px-3 py-1.5 text-sm border rounded-md" required>
+              <input type="text" placeholder="Spieler 4 (Montage 2)" class="player-input px-3 py-1.5 text-sm border rounded-md" required>
+              <input type="text" placeholder="Spieler 5 (Prüfen/Versand)" class="player-input px-3 py-1.5 text-sm border rounded-md" required>
+            </div>
+          </div>
+          <button type="submit" class="bg-slate-900 text-white text-sm font-bold px-6 py-2.5 rounded-lg hover:bg-slate-800 transition">Team Hinzufügen</button>
+        </form>
+      </div>
+
+      <!-- Team Liste & Dateneingabe -->
+      <div id="teams-container" class="space-y-8">
+        <!-- Dynamische Teamkarten werden hier eingefügt -->
+      </div>
+    </section>
+
+    <!-- TAB 2: AUSWERTUNG & RANKING -->
+    <section id="tab-ranking" class="hidden space-y-8">
+      
+      <!-- Übersicht Diagramm -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-900 mb-4">Durchlaufzeiten-Vergleich pro Gruppe & Runde</h2>
+        <div class="h-72">
+          <canvas id="comparisonChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Ranking: Gesamtoptimierung -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-900 mb-1 flex items-center justify-between">
+            <span>🚀 Höchste Gesamtoptimierung</span>
+            <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">Runde 1 ➔ Runde 3</span>
+          </h2>
+          <p class="text-xs text-slate-500 mb-4">Prozentuale Verbesserung der Durchlaufzeit von Runde 1 zu Runde 3.</p>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b">
+                <tr>
+                  <th class="p-3">Rang</th>
+                  <th class="p-3">Team</th>
+                  <th class="p-3">R1 Zeit</th>
+                  <th class="p-3">R3 Zeit</th>
+                  <th class="p-3">Optimierung (%)</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-optimization-tbody" class="divide-y">
+                <!-- Data -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ranking: Schnellste Runden -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-900 mb-1">⚡ Bestzeiten pro Runde</h2>
+          <p class="text-xs text-slate-500 mb-4">Teams mit der geringsten Gesamtdurchlaufzeit je Runde.</p>
+          
+          <div class="space-y-4" id="best-times-container">
+            <!-- Data per round -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 3: SIEGEREHRUNG -->
+    <section id="tab-ceremony" class="hidden space-y-8">
+      
+      <!-- Audio Settings -->
+      <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-md border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+          <h3 class="text-lg font-bold text-amber-400">🎵 Einlaufmusik & Siegerehrung</h3>
+          <p class="text-xs text-slate-400">Lade hier deinen Song (z. B. Drake – Trophies MP3) hoch. Wenn keine Datei gewählt ist, wird ein Fanfaren-Sound abgespielt.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <input type="file" id="audio-file-input" accept="audio/*" class="text-xs text-slate-400 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-400 cursor-pointer">
+          <button onclick="toggleMusic()" id="music-toggle-btn" class="px-4 py-2 bg-slate-800 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold hover:bg-slate-700 transition">▶ Musik abspielen</button>
+        </div>
+      </div>
+
+      <!-- Podium View -->
+      <div class="bg-slate-950 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden text-center min-h-[480px] flex flex-col justify-between">
+        <div>
+          <button onclick="triggerCeremony()" class="px-8 py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 rounded-full font-black text-lg shadow-lg hover:scale-105 transition transform">🏆 Siegerehrung Starten!</button>
+        </div>
+
+        <!-- Podium Cards -->
+        <div id="podium-container" class="grid grid-cols-3 gap-4 items-end max-w-4xl mx-auto w-full my-8">
+          <!-- Platz 2 -->
+          <div id="podium-2" class="opacity-0 transition-all duration-700 transform translate-y-8 flex flex-col items-center">
+            <div class="silver-gradient p-4 rounded-t-2xl w-full text-slate-900 shadow-xl border-t-4 border-slate-300">
+              <span class="text-3xl font-black">2. Platz</span>
+              <h4 id="podium-2-name" class="font-bold text-lg truncate mt-1">-</h4>
+              <p id="podium-2-opt" class="text-xs font-semibold text-slate-700 mt-1">0% Optimierung</p>
+              <div id="podium-2-players" class="text-[10px] text-slate-600 mt-2 italic truncate">-</div>
+            </div>
+            <div class="bg-slate-800 w-full h-32 rounded-b-lg border-t border-slate-700 flex items-center justify-center text-slate-500 font-black text-xl">2</div>
+          </div>
+
+          <!-- Platz 1 -->
+          <div id="podium-1" class="opacity-0 transition-all duration-700 delay-300 transform translate-y-8 flex flex-col items-center">
+            <div class="gold-gradient p-6 rounded-t-2xl w-full text-slate-950 shadow-2xl border-t-4 border-yellow-200">
+              <span class="text-4xl font-black">1. Platz</span>
+              <h4 id="podium-1-name" class="font-extrabold text-xl truncate mt-1">-</h4>
+              <p id="podium-1-opt" class="text-xs font-bold text-slate-800 mt-1">0% Optimierung</p>
+              <div id="podium-1-players" class="text-xs text-slate-800 mt-2 italic font-medium truncate">-</div>
+            </div>
+            <div class="bg-amber-600 w-full h-44 rounded-b-lg border-t border-amber-500 flex items-center justify-center text-amber-200 font-black text-3xl">1</div>
+          </div>
+
+          <!-- Platz 3 -->
+          <div id="podium-3" class="opacity-0 transition-all duration-700 delay-150 transform translate-y-8 flex flex-col items-center">
+            <div class="bronze-gradient p-4 rounded-t-2xl w-full text-white shadow-xl border-t-4 border-amber-700">
+              <span class="text-2xl font-black">3. Platz</span>
+              <h4 id="podium-3-name" class="font-bold text-base truncate mt-1">-</h4>
+              <p id="podium-3-opt" class="text-xs font-semibold text-amber-200 mt-1">0% Optimierung</p>
+              <div id="podium-3-players" class="text-[10px] text-amber-100 mt-2 italic truncate">-</div>
+            </div>
+            <div class="bg-slate-900 w-full h-24 rounded-b-lg border-t border-slate-800 flex items-center justify-center text-slate-600 font-black text-lg">3</div>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500">Basiert auf der höchsten prozentualen Gesamtoptimierung von Runde 1 zu Runde 3.</p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // Data State
+    let teams = [];
+    let customAudioUrl = null;
+    let audioElement = new Audio();
+    let chartInstance = null;
+
+    // Default Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      renderTeams();
+      initAudio();
+    });
+
+    function saveData() {
+      localStorage.setItem('lean_game_teams', JSON.stringify(teams));
+    }
+
+    function loadData() {
+      const stored = localStorage.getItem('lean_game_teams');
+      if (stored) {
+        teams = JSON.parse(stored);
+      } else {
+        // Sample Team
+        teams = [{
+          id: 'team-1',
+          name: 'Lean Pioneers',
+          players: ['Anna', 'Ben', 'Chris', 'David', 'Elena'],
+          rounds: {
+            1: { stoppedTime: 120, droppedBalls: 2, notes: 'Erste Versuche, FIFO eingehalten' },
+            2: { stoppedTime: 14, droppedBalls: 0, notes: 'Reihenfolge angepasst' },
+            3: { stoppedTime: 9, droppedBalls: 0, notes: 'Alle Verschwendungen eliminiert' }
+          }
+        }];
+        saveData();
+      }
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.getElementById('tab-teams').classList.add('hidden');
+      document.getElementById('tab-ranking').classList.add('hidden');
+      document.getElementById('tab-ceremony').classList.add('hidden');
+
+      document.getElementById('tab-btn-teams').className = "px-4 py-2 text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition";
+      document.getElementById('tab-btn-ranking').className = "px-4 py-2 text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition";
+      document.getElementById('tab-btn-ceremony').className = "px-4 py-2 text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition";
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      if (tabId === 'teams') {
+        document.getElementById('tab-btn-teams').className = "px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow transition hover:bg-emerald-400";
+      } else if (tabId === 'ranking') {
+        document.getElementById('tab-btn-ranking').className = "px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow transition hover:bg-emerald-400";
+        renderRanking();
+      } else if (tabId === 'ceremony') {
+        document.getElementById('tab-btn-ceremony').className = "px-4 py-2 text-sm font-semibold rounded-lg bg-amber-500 text-slate-900 shadow hover:bg-amber-400 transition";
+        renderPodiumData();
+      }
+    }
+
+    // Add Team Handler
+    function handleAddTeam(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('team-name-input');
+      const playerInputs = document.querySelectorAll('.player-input');
+
+      const players = Array.from(playerInputs).map(i => i.value.trim());
+
+      const newTeam = {
+        id: 'team-' + Date.now(),
+        name: nameInput.value.trim(),
+        players: players,
+        rounds: {
+          1: { stoppedTime: '', droppedBalls: 0, notes: '' },
+          2: { stoppedTime: '', droppedBalls: 0, notes: '' },
+          3: { stoppedTime: '', droppedBalls: 0, notes: '' }
+        }
+      };
+
+      teams.push(newTeam);
+      saveData();
+      renderTeams();
+
+      // Reset form
+      nameInput.value = '';
+      playerInputs.forEach(i => i.value = '');
+    }
+
+    function deleteTeam(id) {
+      if (confirm('Möchtest du dieses Team wirklich löschen?')) {
+        teams = teams.filter(t => t.id !== id);
+        saveData();
+        renderTeams();
+      }
+    }
+
+    // Update Round Inputs
+    function updateRoundData(teamId, roundNum, field, value) {
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      if (field === 'stoppedTime' || field === 'droppedBalls') {
+        team.rounds[roundNum][field] = value === '' ? '' : parseFloat(value) || 0;
+      } else {
+        team.rounds[roundNum][field] = value;
+      }
+
+      saveData();
+      renderTeams();
+    }
+
+    // Computations per Team
+    function calculateTeamMetrics(team) {
+      const r1Stopped = parseFloat(team.rounds[1].stoppedTime) || 0;
+      const r1Dropped = parseFloat(team.rounds[1].droppedBalls) || 0;
+      const r1Total = r1Stopped + (r1Dropped * 10);
+
+      const r2Stopped = parseFloat(team.rounds[2].stoppedTime) || 0;
+      const r2Dropped = parseFloat(team.rounds[2].droppedBalls) || 0;
+      const r2Total = r2Stopped + (r2Dropped * 10);
+
+      const r3Stopped = parseFloat(team.rounds[3].stoppedTime) || 0;
+      const r3Dropped = parseFloat(team.rounds[3].droppedBalls) || 0;
+      const r3Total = r3Stopped + (r3Dropped * 10);
+
+      // Target values (10% of previous round)
+      const r2Target = r1Total > 0 ? r1Total * 0.10 : 0;
+      const r3Target = r2Total > 0 ? r2Total * 0.10 : 0;
+
+      // Improvements R1 -> R2
+      const r2ImpSec = r1Total > 0 && r2Total > 0 ? (r1Total - r2Total) : 0;
+      const r2ImpPct = r1Total > 0 && r2Total > 0 ? (r2ImpSec / r1Total) * 100 : 0;
+      const r2Achieved = r2Total > 0 && r2Target > 0 && r2Total <= r2Target;
+
+      // Improvements R2 -> R3
+      const r3ImpSec = r2Total > 0 && r3Total > 0 ? (r2Total - r3Total) : 0;
+      const r3ImpPct = r2Total > 0 && r3Total > 0 ? (r3ImpSec / r2Total) * 100 : 0;
+      const r3Achieved = r3Total > 0 && r3Target > 0 && r3Total <= r3Target;
+
+      // Overall Improvement R1 -> R3
+      const overallImpSec = r1Total > 0 && r3Total > 0 ? (r1Total - r3Total) : 0;
+      const overallImpPct = r1Total > 0 && r3Total > 0 ? (overallImpSec / r1Total) * 100 : 0;
+
+      return {
+        r1Total, r2Total, r3Total,
+        r2Target, r3Target,
+        r2ImpSec, r2ImpPct, r2Achieved,
+        r3ImpSec, r3ImpPct, r3Achieved,
+        overallImpSec, overallImpPct
+      };
+    }
+
+    // Render Teams UI
+    function renderTeams() {
+      const container = document.getElementById('teams-container');
+      container.innerHTML = '';
+
+      if (teams.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-400">Noch keine Teams angelegt. Erstelle oben dein erstes Team!</div>`;
+        return;
+      }
+
+      teams.forEach(team => {
+        const m = calculateTeamMetrics(team);
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden';
+        card.innerHTML = `
+          <div class="bg-slate-900 text-white p-4 px-6 flex justify-between items-center">
+            <div>
+              <h3 class="font-black text-lg text-emerald-400">${team.name}</h3>
+              <p class="text-xs text-slate-400 mt-0.5">👥 Spieler: ${team.players.join(', ')}</p>
+            </div>
+            <button onclick="deleteTeam('${team.id}')" class="text-xs text-rose-400 hover:text-rose-300 font-semibold bg-rose-950/40 px-3 py-1.5 rounded border border-rose-800/50">Team Löschen</button>
+          </div>
+
+          <div class="p-6 overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 uppercase border-b">
+                  <th class="p-2.5">Runde</th>
+                  <th class="p-2.5">Losgröße</th>
+                  <th class="p-2.5">Gestoppte Zeit (s)</th>
+                  <th class="p-2.5">Gefallene Bälle</th>
+                  <th class="p-2.5">Durchlaufzeit Ges.</th>
+                  <th class="p-2.5">Zielwert (max 10%)</th>
+                  <th class="p-2.5">Ziel erreicht?</th>
+                  <th class="p-2.5">Verbesserung (s / %)</th>
+                  <th class="p-2.5">Notizen & Änderungen</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <!-- Runde 1 -->
+                <tr>
+                  <td class="p-2.5 font-bold text-slate-900">Runde 1</td>
+                  <td class="p-2.5">6 Bälle</td>
+                  <td class="p-2.5">
+                    <input type="number" step="0.1" value="${team.rounds[1].stoppedTime}" onchange="updateRoundData('${team.id}', 1, 'stoppedTime', this.value)" class="w-20 px-2 py-1 border rounded focus:ring-1 focus:ring-emerald-500">
+                  </td>
+                  <td class="p-2.5">
+                    <input type="number" min="0" value="${team.rounds[1].droppedBalls}" onchange="updateRoundData('${team.id}', 1, 'droppedBalls', this.value)" class="w-16 px-2 py-1 border rounded focus:ring-1 focus:ring-emerald-500">
+                  </td>
+                  <td class="p-2.5 font-bold text-slate-900">${m.r1Total > 0 ? m.r1Total.toFixed(1) + ' s' : '-'}</td>
+                  <td class="p-2.5 text-slate-400">-</td>
+                  <td class="p-2.5 text-slate-400">-</td>
+                  <td class="p-2.5 text-slate-400">Basisrunde</td>
+                  <td class="p-2.5">
+                    <input type="text" placeholder="z. B. Ausgangslage" value="${team.rounds[1].notes}" onchange="updateRoundData('${team.id}', 1, 'notes', this.value)" class="w-full px-2 py-1 border rounded text-xs">
+                  </td>
+                </tr>
+
+                <!-- Runde 2 -->
+                <tr>
+                  <td class="p-2.5 font-bold text-slate-900">Runde 2</td>
+                  <td class="p-2.5">1 Ball</td>
+                  <td class="p-2.5">
+                    <input type="number" step="0.1" value="${team.rounds[2].stoppedTime}" onchange="updateRoundData('${team.id}', 2, 'stoppedTime', this.value)" class="w-20 px-2 py-1 border rounded focus:ring-1 focus:ring-emerald-500">
+                  </td>
+                  <td class="p-2.5">
+                    <input type="number" min="0" value="${team.rounds[2].droppedBalls}" onchange="updateRoundData('${team.id}', 2, 'droppedBalls', this.value)" class="w-16 px-2 py-1 border rounded focus:ring-1 focus:ring-emerald-500">
+                  </td>
+                  <td class="p-2.5 font-bold text-slate-900">${m.r2Total > 0 ? m.r2Total.toFixed(1) + ' s' : '-'}</td>
+                  <td class="p-2.5 font-semibold text-slate-600">${m.r2Target > 0 ? '≤ ' + m.r2Target.toFixed(1) + ' s' : '-'}</td>
+                  <td class="p-2.5">
+                    ${m.r2Total > 0 ? (m.r2Achieved ? '<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Ja</span>' : '<span class="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded">Nein</span>') : '-'}
+                  </td>
+                  <td class="p-2.5 font-semibold text-emerald-600">
+                    ${m.r2ImpPct !== 0 ? `${m.r2ImpSec.toFixed(1)} s (${m.r2ImpPct.toFixed(1)}%)` : '-'}
+                  </td>
+                  <td class="p-2.5">
+                    <input type="text" placeholder="Änderungen in R2" value="${team.rounds[2].notes}" onchange="updateRoundData('${team.id}', 2, 'notes', this.value)" class="w-full px-2 py-1 border rounded text-xs">
+                  </td>
+                </tr>
+
+                <!-- Runde 3 -->
+                <tr>
+                  <td class="p-2.5 font-bold text-slate-900">Runde 3</td>
+                  <td class="p-2.5">1 Ball</td>
+                  <td class="p-2.5">
+                    <input type="number" step="0.1" value="${team.rounds[3].stoppedTime}" onchange="updateRoundData('${team.id}', 3, 'stoppedTime', this.value)" class="w-20 px-2 py-1 border rounded focus:ring-1 focus:ring-emerald-500">
+                  </td>
+                  <td class="p-2.5">
+                    <input type="number" min="0" value="${team.rounds[3].droppedBalls}" onchange="updateRoundData('${team.id}', 3, 'droppedBalls', this.value)" class="w-16 px-2 py-1 border rounded focus:ring-1 focus:ring-emerald-500">
+                  </td>
+                  <td class="p-2.5 font-bold text-slate-900">${m.r3Total > 0 ? m.r3Total.toFixed(1) + ' s' : '-'}</td>
+                  <td class="p-2.5 font-semibold text-slate-600">${m.r3Target > 0 ? '≤ ' + m.r3Target.toFixed(1) + ' s' : '-'}</td>
+                  <td class="p-2.5">
+                    ${m.r3Total > 0 ? (m.r3Achieved ? '<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Ja</span>' : '<span class="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded">Nein</span>') : '-'}
+                  </td>
+                  <td class="p-2.5 font-semibold text-emerald-600">
+                    ${m.r3ImpPct !== 0 ? `${m.r3ImpSec.toFixed(1)} s (${m.r3ImpPct.toFixed(1)}%)` : '-'}
+                  </td>
+                  <td class="p-2.5">
+                    <input type="text" placeholder="Änderungen in R3" value="${team.rounds[3].notes}" onchange="updateRoundData('${team.id}', 3, 'notes', this.value)" class="w-full px-2 py-1 border rounded text-xs">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Summary footer -->
+          <div class="bg-slate-50 border-t p-3 px-6 flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-700">Gesamtoptimierung (Runde 1 ➔ Runde 3):</span>
+            <span class="font-black text-sm text-emerald-600">${m.overallImpPct > 0 ? '+' + m.overallImpPct.toFixed(1) + ' % Verbesserung (' + m.overallImpSec.toFixed(1) + ' s eingespart)' : 'Noch unvollständig'}</span>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // Render Rankings & Chart
+    function renderRanking() {
+      // 1. Optimization Ranking Table
+      const optTbody = document.getElementById('ranking-optimization-tbody');
+      optTbody.innerHTML = '';
+
+      const ranked = teams.map(t => {
+        const m = calculateTeamMetrics(t);
+        return {
+          team: t,
+          metrics: m
+        };
+      }).sort((a, b) => b.metrics.overallImpPct - a.metrics.overallImpPct);
+
+      ranked.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = index === 0 ? 'bg-emerald-50/50 font-semibold' : '';
+        tr.innerHTML = `
+          <td class="p-3 font-black">${index + 1}.</td>
+          <td class="p-3">
+            <div class="font-bold text-slate-900">${item.team.name}</div>
+            <div class="text-[10px] text-slate-500">${item.team.players.join(', ')}</div>
+          </td>
+          <td class="p-3">${item.metrics.r1Total > 0 ? item.metrics.r1Total.toFixed(1) + ' s' : '-'}</td>
+          <td class="p-3">${item.metrics.r3Total > 0 ? item.metrics.r3Total.toFixed(1) + ' s' : '-'}</td>
+          <td class="p-3 text-emerald-600 font-bold">${item.metrics.overallImpPct > 0 ? item.metrics.overallImpPct.toFixed(1) + ' %' : '-'}</td>
+        `;
+        optTbody.appendChild(tr);
+      });
+
+      // 2. Best Times per Round
+      const bestContainer = document.getElementById('best-times-container');
+      bestContainer.innerHTML = '';
+
+      [1, 2, 3].forEach(rNum => {
+        const sortedRound = [...teams].map(t => {
+          const m = calculateTeamMetrics(t);
+          return { name: t.name, time: m[`r${rNum}Total`] };
+        }).filter(t => t.time > 0).sort((a, b) => a.time - b.time);
+
+        const best = sortedRound[0];
+
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-lg border border-slate-200 bg-slate-50 flex justify-between items-center';
+        card.innerHTML = `
+          <div>
+            <span class="text-xs font-bold uppercase text-slate-500">Runde ${rNum} Bestzeit</span>
+            <div class="font-bold text-slate-900">${best ? best.name : 'Keine Daten'}</div>
+          </div>
+          <div class="text-right">
+            <span class="text-sm font-black text-slate-900">${best ? best.time.toFixed(1) + ' s' : '-'}</span>
+          </div>
+        `;
+        bestContainer.appendChild(card);
+      });
+
+      // 3. Render Chart
+      renderChart();
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('comparisonChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      const labels = teams.map(t => t.name);
+      const r1Data = teams.map(t => calculateTeamMetrics(t).r1Total);
+      const r2Data = teams.map(t => calculateTeamMetrics(t).r2Total);
+      const r3Data = teams.map(t => calculateTeamMetrics(t).r3Total);
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Runde 1 (s)', data: r1Data, backgroundColor: '#94a3b8' },
+            { label: 'Runde 2 (s)', data: r2Data, backgroundColor: '#38bdf8' },
+            { label: 'Runde 3 (s)', data: r3Data, backgroundColor: '#10b981' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Durchlaufzeit (Sekunden)' } }
+          }
+        }
+      });
+    }
+
+    // Siegerehrung & Podium Data
+    function renderPodiumData() {
+      const ranked = teams.map(t => {
+        const m = calculateTeamMetrics(t);
+        return {
+          team: t,
+          opt: m.overallImpPct
+        };
+      }).sort((a, b) => b.opt - a.opt);
+
+      // Reset
+      [1, 2, 3].forEach(p => {
+        document.getElementById(`podium-${p}-name`).innerText = '-';
+        document.getElementById(`podium-${p}-opt`).innerText = '0% Optimierung';
+        document.getElementById(`podium-${p}-players`).innerText = '-';
+      });
+
+      if (ranked[0]) {
+        document.getElementById('podium-1-name').innerText = ranked[0].team.name;
+        document.getElementById('podium-1-opt').innerText = ranked[0].opt.toFixed(1) + '% Optimierung';
+        document.getElementById('podium-1-players').innerText = ranked[0].team.players.join(', ');
+      }
+      if (ranked[1]) {
+        document.getElementById('podium-2-name').innerText = ranked[1].team.name;
+        document.getElementById('podium-2-opt').innerText = ranked[1].opt.toFixed(1) + '% Optimierung';
+        document.getElementById('podium-2-players').innerText = ranked[1].team.players.join(', ');
+      }
+      if (ranked[2]) {
+        document.getElementById('podium-3-name').innerText = ranked[2].team.name;
+        document.getElementById('podium-3-opt').innerText = ranked[2].opt.toFixed(1) + '% Optimierung';
+        document.getElementById('podium-3-players').innerText = ranked[2].team.players.join(', ');
+      }
+    }
+
+    function triggerCeremony() {
+      renderPodiumData();
+
+      // Animate Podiums
+      const p2 = document.getElementById('podium-2');
+      const p1 = document.getElementById('podium-1');
+      const p3 = document.getElementById('podium-3');
+
+      p1.classList.remove('opacity-0', 'translate-y-8');
+      p2.classList.remove('opacity-0', 'translate-y-8');
+      p3.classList.remove('opacity-0', 'translate-y-8');
+
+      // Confetti Effect
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+
+      // Play Music
+      playMusic();
+    }
+
+    // Audio & Fallback Synth Audio
+    function initAudio() {
+      const fileInput = document.getElementById('audio-file-input');
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          customAudioUrl = URL.createObjectURL(file);
+          audioElement.src = customAudioUrl;
+        }
+      });
+    }
+
+    function toggleMusic() {
+      if (audioElement.paused) {
+        playMusic();
+      } else {
+        audioElement.pause();
+        document.getElementById('music-toggle-btn').innerText = '▶ Musik abspielen';
+      }
+    }
+
+    function playMusic() {
+      if (customAudioUrl) {
+        audioElement.play();
+        document.getElementById('music-toggle-btn').innerText = '⏸ Musik pauschalisieren';
+      } else {
+        playFanfareSynth();
+      }
+    }
+
+    function playFanfareSynth() {
+      // Fallback brass tune via Web Audio API if no audio file uploaded
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [261.63, 329.63, 392.00, 523.25]; // C E G C
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.3, ctx.currentTime + idx * 0.2);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.2 + 0.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.2);
+          osc.stop(ctx.currentTime + idx * 0.2 + 0.6);
+        });
+      } catch (e) {
+        console.log('Audio Context Error', e);
+      }
+    }
+  </script>
+</body>
+</html>
